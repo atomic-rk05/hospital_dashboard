@@ -152,6 +152,11 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            height: 680px;  /* Adjust height to fit 10 entries */
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            /*border: 1px solid #ccc;*/
+            border-radius: 8px;
         }
 
         th, td {
@@ -828,6 +833,9 @@
         .survey-card {
             grid-row: span 2;
             margin-bottom: 15px;
+
+            width: 520px;
+            right: -0.8vh;
         }
 
        
@@ -977,7 +985,7 @@
     border-collapse: collapse;
     background-color: white;
     border-radius: 8px;
-    min-width: 650px;
+    min-width: 1025px;/*680*/
 }
 
         .card-header {
@@ -1101,6 +1109,7 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   grid-template-columns: minmax(0, 1fr);
+  margin-left: 50px;
 }
 .site-footer {
   /*display: flex;*/
@@ -1238,6 +1247,7 @@ footer {
     
     .main-content {
         padding-bottom: 70px;
+        /*margin-left: 160px;*/
     }
 }
 
@@ -1426,7 +1436,7 @@ footer {
                             </div>
                         </div>
                     </div>-->
-                    <div class="stats-card card small-card">
+                    <div style="width:240px; margin-bottom: -6px;" class="stats-card card small-card">
                         <h3>New Patients</h3>
                         <div class="number loading" id="newPatientsNumber">Loading...</div>
                         <div class="progress-bar">
@@ -1436,7 +1446,7 @@ footer {
                             <canvas id="newPatientsChart"></canvas>
                         </div>
                     </div>
-                    <div class="stats-card card small-card">
+                    <div style="width:240px; margin-bottom: -6px;" class="stats-card card small-card">
                         <h3>OPD Patients</h3>
                         <div class="number loading" id="opdPatientsNumber">Loading...</div>
                         <div class="progress-bar">
@@ -1464,7 +1474,7 @@ footer {
                         </div>
                     </div>
                     
-                    <div class="stats-card card small-card">
+                    <div  style="width:240px;" class="stats-card card small-card">
                         <h3>Today's Operations</h3>
                         <div class="number loading" id="operationsNumber">Loading...</div>
                         <div class="progress-bar">
@@ -1475,7 +1485,7 @@ footer {
                         </div>
                     </div>
                     
-                    <div class="stats-card card small-card">
+                    <div  style="width:240px;"class="stats-card card small-card">
                         <h3>Visitors</h3>
                         <div class="number loading" id="visitorsNumber">Loading...</div>
                         <div class="progress-bar">
@@ -1626,6 +1636,7 @@ footer {
 
        // Hospital Dashboard JavaScript
 // This code connects the HTML frontend with the Flask backend
+        // This code connects the HTML frontend with the Flask backend
 
 // Configuration
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -1638,7 +1649,68 @@ let patientsData = [];
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Hospital Dashboard initializing...');
     initializeDashboard();
+    
+    // Initialize table scrolling
+    initializeTableScrolling();
 });
+
+// Initialize table scrolling functionality
+function initializeTableScrolling() {
+    const tableContainer = document.querySelector('.table-container') || document.querySelector('#patient-table')?.parentElement;
+    
+    if (tableContainer) {
+        // Add scroll styles to the table container
+        tableContainer.style.maxHeight = '680px';
+        tableContainer.style.maxWidth = '1580px'; // Adjust height as needed
+        tableContainer.style.overflowY = 'auto';
+        tableContainer.style.overflowX = 'auto';
+        tableContainer.style.border = '1px solid #ddd';
+        tableContainer.style.borderRadius = '5px';
+        
+        // Add custom scrollbar styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .table-container::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            .table-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 5px;
+            }
+            
+            .table-container::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 5px;
+            }
+            
+            .table-container::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+            
+            /* Sticky header for better UX */
+            .patient-table thead th {
+                position: sticky;
+                top: 0;
+                background-color: #f8f9fa;
+                z-index: 10;
+                box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+            }
+            
+            /* Ensure table takes full width */
+            .patient-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            
+            /* Add subtle row hover effect */
+            .patient-table tbody tr:hover {
+                background-color: #f5f5f5;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
 
 // Main initialization function
 async function initializeDashboard() {
@@ -1792,8 +1864,77 @@ async function loadPatientsData() {
     }
 }
 
-// Update patients table
+// Update patients table with scrolling support
 function updatePatientsTable(patients) {
+    const loadingElement = document.getElementById('loading');
+    const tableElement = document.getElementById('patient-table');
+    const tbodyElement = document.getElementById('patient-tbody');
+    
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
+    
+    if (tableElement) {
+        tableElement.style.display = 'table';
+        tableElement.classList.add('patient-table'); // Add class for styling
+    }
+    
+    if (tbodyElement) {
+        tbodyElement.innerHTML = '';
+        
+        // Show ALL patients, not just first 10 (scrolling will handle visibility)
+        patients.forEach((patient, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${patient.name || 'N/A'}</td>
+                <td>${patient.doctor || 'N/A'}</td>
+                <td>${patient.admitDate}</td>
+                <td><span class="disease-tag disease-${getDiseaseClass(patient.disease)}">${patient.disease || 'N/A'}</span></td>
+                <td>${patient.roomNo || 'N/A'}</td>
+                <td class="action-buttons">
+                    <button class="btn-edit" onclick="editPatient(${index})">✏️</button>
+                    <button class="btn-delete" onclick="deletePatient(${index})">✗</button>
+                </td>
+            `;
+            tbodyElement.appendChild(row);
+        });
+    }
+    
+    // Add pagination info
+    addPaginationInfo(patients.length);
+}
+
+// Add pagination info below table
+function addPaginationInfo(totalRecords) {
+    const tableContainer = document.querySelector('.table-container') || document.querySelector('#patient-table')?.parentElement;
+    
+    if (tableContainer) {
+        // Remove existing pagination info
+        const existingInfo = tableContainer.querySelector('.pagination-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+        
+        // Add new pagination info
+        const paginationInfo = document.createElement('div');
+        paginationInfo.className = 'pagination-info';
+        paginationInfo.style.cssText = `
+            padding: 10px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #ddd;
+        `;
+        /*paginationInfo.textContent = `Showing ${totalRecords} patients (scroll to view more)`;*/
+        
+        tableContainer.appendChild(paginationInfo);
+    }
+}
+
+// Alternative function: Show only first 10 rows with "Load More" button
+function updatePatientsTableWithLoadMore(patients) {
     const loadingElement = document.getElementById('loading');
     const tableElement = document.getElementById('patient-table');
     const tbodyElement = document.getElementById('patient-tbody');
@@ -1809,22 +1950,64 @@ function updatePatientsTable(patients) {
     if (tbodyElement) {
         tbodyElement.innerHTML = '';
         
-        patients.forEach((patient, index) => {
+        // Show only first 10 patients
+        const visiblePatients = patients.slice(0, 10);
+        
+        visiblePatients.forEach((patient, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${patient.name || 'N/A'}</td>
-                    <td>${patient.doctor || 'N/A'}</td>
-                    <td>${patient.admitDate}</td>
-                    <td><span class="disease-tag disease-${getDiseaseClass(patient.disease)}">${patient.disease || 'N/A'}</span></td>
-                    <td>${patient.roomNo || 'N/A'}</td>
-                    <td class="action-buttons">
-                        <button class="btn-edit" onclick="editPatient(${index})">✏️</button>
-                        <button class="btn-delete" onclick="deletePatient(${index})">✗</button>
-                    </td>
-                `;
+                <td>${index + 1}</td>
+                <td>${patient.name || 'N/A'}</td>
+                <td>${patient.doctor || 'N/A'}</td>
+                <td>${patient.admitDate}</td>
+                <td><span class="disease-tag disease-${getDiseaseClass(patient.disease)}">${patient.disease || 'N/A'}</span></td>
+                <td>${patient.roomNo || 'N/A'}</td>
+                <td class="action-buttons">
+                    <button class="btn-edit" onclick="editPatient(${index})">✏️</button>
+                    <button class="btn-delete" onclick="deletePatient(${index})">✗</button>
+                </td>
+            `;
             tbodyElement.appendChild(row);
         });
+        
+        // Add "Load More" button if there are more patients
+        if (patients.length > 10) {
+            addLoadMoreButton(patients.length - 10);
+        }
+    }
+}
+
+// Add Load More button
+function addLoadMoreButton(remainingCount) {
+    const tableContainer = document.querySelector('.table-container') || document.querySelector('#patient-table')?.parentElement;
+    
+    if (tableContainer) {
+        // Remove existing load more button
+        const existingBtn = tableContainer.querySelector('.load-more-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+        
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.className = 'load-more-btn';
+        loadMoreBtn.textContent = `Load More (${remainingCount} remaining)`;
+        loadMoreBtn.style.cssText = `
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 0 0 5px 5px;
+            cursor: pointer;
+            font-size: 14px;
+        `;
+        
+        loadMoreBtn.onclick = function() {
+            // Switch to full scrolling view
+            updatePatientsTable(patientsData);
+        };
+        
+        tableContainer.appendChild(loadMoreBtn);
     }
 }
 
@@ -1906,6 +2089,35 @@ const samplePatients = [
         admitDate: "2016-05-17",
         disease: "malaria",
         roomNo: "108"
+    },
+    // Add more sample patients to demonstrate scrolling
+    {
+        name: "John Smith",
+        doctor: "Dr Anderson",
+        admitDate: "2016-05-15",
+        disease: "diabetes",
+        roomNo: "109"
+    },
+    {
+        name: "Sarah Johnson",
+        doctor: "Dr Wilson",
+        admitDate: "2016-05-14",
+        disease: "asthma",
+        roomNo: "110"
+    },
+    {
+        name: "Michael Brown",
+        doctor: "Dr Davis",
+        admitDate: "2016-05-13",
+        disease: "influenza",
+        roomNo: "111"
+    },
+    {
+        name: "Emily Davis",
+        doctor: "Dr Miller",
+        admitDate: "2016-05-12",
+        disease: "typhoid",
+        roomNo: "112"
     }
 ];
 
@@ -2258,7 +2470,7 @@ if (typeof Chart !== 'undefined') {
 setInterval(async () => {
     console.log('Auto-refreshing data...');
     await initializeDashboard();
-}, 300000); // 5 minutes (was 3000000 which is 50 minutes)
+}, 300000); // 5 minutes
 
 console.log('Hospital Dashboard JavaScript loaded successfully');
     </script>
